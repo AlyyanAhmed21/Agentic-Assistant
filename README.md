@@ -4,16 +4,19 @@ A professional, multi-agent AI personal assistant built with Streamlit, featurin
 
 ## ✨ Features
 
-- **🤖 5 Specialized Agents**: Each agent handles specific types of requests
+- **🤖 7 Specialized Agents**: Each agent handles specific types of requests
 - **💬 Chat Agent**: Natural conversations and general questions
 - **✅ Productivity Agent**: Task management, reminders, and scheduling
-- **🎨 Creative Agent**: Content generation (poems, stories, summaries)
+- **🎨 Creative Agent**: Content generation (poems, stories, summaries) + AI image generation
 - **🧠 Memory Agent**: Remembers your preferences and context
+- **🔍 Researcher Agent**: Live web search powered by Serper API
+- **📚 Knowledge Base Agent**: RAG-based document Q&A (upload PDFs and ask questions)
 - **🎯 Orchestrator**: Intelligently routes messages to the right agent
-- **💾 Persistent Storage**: SQLite database for users, tasks, conversations, and memories
-- **🔐 Secure Authentication**: Password-protected user accounts
+- **💾 Persistent Storage**: PostgreSQL/SQLite database for users, tasks, conversations, and memories
+- **🔐 Secure Authentication**: Password-protected user accounts with session persistence
 - **📊 LangSmith Tracking**: Complete observability and debugging
-- **� Voice Features**: FREE speech-to-text (local Whisper) + optional TTS
+- **🎤 Voice Features**: FREE speech-to-text (local Whisper) + optional TTS
+- **🔄 Multi-Provider LLM**: Primary Groq + Cerebras fallback for high availability
 
 ## 🎯 Agent Overview
 
@@ -58,7 +61,7 @@ Agent: 📋 You have 3 pending tasks:
 ```
 
 ### 3. Creative Agent 🎨
-**Purpose**: Generate creative content and ideas
+**Purpose**: Generate creative content and ideas + AI images
 
 **Use Cases**:
 - Writing poems and stories
@@ -66,6 +69,7 @@ Agent: 📋 You have 3 pending tasks:
 - Brainstorming ideas
 - Creative writing assistance
 - Content suggestions
+- **AI Image Generation** (local SDXL or free APIs)
 
 **Examples**:
 ```
@@ -79,6 +83,9 @@ Agent: Here's a summary of our discussion:
        - We talked about your project deadline
        - You mentioned needing help with documentation
        - We discussed task prioritization strategies
+
+You: Create an image of a sunset over mountains
+Agent: [Generates and displays an AI image using local SDXL or Pollinations.ai]
 ```
 
 ### 4. Memory Agent 🧠
@@ -100,7 +107,54 @@ Agent: Here's what I remember about you:
        - preferred_priority: high for work tasks
 ```
 
-### 5. Orchestrator 🎯
+### 5. Researcher Agent 🔍
+**Purpose**: Live web search for current information
+
+**Use Cases**:
+- Searching for current events
+- Finding latest information
+- Fact-checking
+- Research with citations
+
+**Examples**:
+```
+You: What's the latest news about AI developments?
+Agent: Based on recent web search:
+       
+       1. **Microsoft announces new AI features**
+          Major tech companies are integrating AI into productivity tools...
+          Source: https://example.com/news
+          
+       2. **OpenAI releases updated model**
+          Recent improvements in language understanding...
+          Source: https://example.com/tech
+```
+
+### 6. Knowledge Base Agent 📚
+**Purpose**: Query uploaded documents using RAG (Retrieval Augmented Generation)
+
+**Use Cases**:
+- Upload PDFs and ask questions
+- Extract information from documents
+- Document-based Q&A
+- Research paper analysis
+
+**Examples**:
+```
+You: [Upload a PDF about machine learning]
+Agent: ✅ Successfully ingested document (42 chunks)
+
+You: What does the document say about neural networks?
+Agent: Based on your document:
+       
+       > "Neural networks are computational models inspired by 
+       > biological neurons that can learn from data..."
+       
+       The document explains that neural networks consist of 
+       interconnected layers that process information hierarchically.
+```
+
+### 7. Orchestrator 🎯
 **Purpose**: Route messages to the appropriate agent(s)
 
 **How it works**:
@@ -122,6 +176,8 @@ Agent: Here's what I remember about you:
 - Free API keys:
   - [Groq API](https://console.groq.com) - For LLM inference (required)
   - [LangSmith](https://smith.langchain.com) - For tracking (required)
+  - [Cerebras API](https://cerebras.ai) - Fallback LLM provider (optional but recommended)
+  - [Serper API](https://serper.dev) - For web search in Researcher Agent (optional)
   - [OpenAI API](https://platform.openai.com) - Optional, only for voice OUTPUT (TTS)
 
 **Note**: Voice INPUT (speech-to-text) is FREE using local Whisper - no API key needed!
@@ -163,13 +219,18 @@ cp .env.example .env
 GROQ_API_KEY=gsk_your_groq_api_key_here
 LANGSMITH_API_KEY=lsv2_pt_your_langsmith_key_here
 
-# Optional (only for voice output)
-OPENAI_API_KEY=sk_your_openai_key_here
+# Optional but recommended (for fallback and enhanced features)
+CEREBRAS_API_KEY=your_cerebras_key_here  # Fallback LLM provider
+SERPER_API_KEY=your_serper_key_here      # For web search
+OPENAI_API_KEY=sk_your_openai_key_here   # For voice output only
 ```
 
 3. **Get your free API keys**:
    - **Groq**: https://console.groq.com → Create API Key
    - **LangSmith**: https://smith.langchain.com → Settings → API Keys
+   - **Cerebras** (optional): https://cerebras.ai → Sign up for free tier
+   - **Serper** (optional): https://serper.dev → Get API key (free tier: 2,500 searches)
+   - **OpenAI** (optional): https://platform.openai.com → Only for TTS voice output
 
 ### Run the Application
 
@@ -204,11 +265,27 @@ The chat interface automatically routes your messages to the right agent:
 "What are my pending tasks?"
 ```
 
-**For Creative Content**:
+**For Creative Content & Images**:
 ```
 "Write a poem about nature"
 "Summarize our conversation"
 "Give me 5 ideas for a blog post"
+"Create an image of a futuristic city"
+"Draw a picture of a cat wearing a hat"
+```
+
+**For Web Research**:
+```
+"What's the latest news about SpaceX?"
+"Search for recent AI breakthroughs"
+"Find information about climate change policies"
+```
+
+**For Document Q&A**:
+```
+"Upload a PDF and ask questions"
+[After uploading]: "What are the key findings in this paper?"
+[After uploading]: "Summarize the introduction section"
 ```
 
 **For General Chat**:
@@ -254,11 +331,13 @@ AgenticAssistant/
 │   ├── base_agent.py          # Base class for all agents
 │   ├── chat_agent.py          # Casual conversation
 │   ├── productivity_agent.py  # Task management
-│   ├── creative_agent.py      # Content generation
+│   ├── creative_agent.py      # Content + image generation
 │   ├── memory_agent.py        # User context management
+│   ├── researcher_agent.py    # Live web search (Serper API)
+│   ├── knowledge_agent.py     # RAG-based document Q&A
 │   └── orchestrator.py        # Agent coordination
 ├── llm/                       # LLM integration
-│   ├── llm_client.py          # Groq API client
+│   ├── llm_client.py          # Groq + Cerebras clients
 │   └── prompts.py             # System prompts
 ├── database/                  # Data persistence
 │   ├── models.py              # Database schema
@@ -266,11 +345,14 @@ AgenticAssistant/
 ├── utils/                     # Utilities
 │   ├── langsmith_tracker.py   # LangSmith integration
 │   └── voice_utils.py         # Voice I/O
-└── data/                      # SQLite database
+├── models/                    # Downloaded AI models (SDXL, etc.)
+└── data/                      # SQLite database (if using local)
     └── assistant.db
 ```
 
 ### Database Schema
+
+**Supports both SQLite (local) and PostgreSQL (cloud/production)**
 
 **Users Table**:
 - `user_id`: Primary key
@@ -334,13 +416,24 @@ ENABLE_VOICE_OUTPUT=true  # Requires OpenAI API credits
 Edit `.env` to customize:
 
 ```bash
-# LLM Settings
-DEFAULT_MODEL=llama-3.3-70b-versatile
-TEMPERATURE=0.7          # 0.0-1.0 (higher = more creative)
-MAX_TOKENS=2048          # Maximum response length
+# Required API Keys
+GROQ_API_KEY=your_groq_key_here
+LANGSMITH_API_KEY=your_langsmith_key_here
 
-# Database
-DATABASE_PATH=postgresql://postgres:alyyan.99@db.hrjjioyqatvxoospsncn.supabase.co:5432/postgres
+# Optional API Keys
+CEREBRAS_API_KEY=your_cerebras_key_here  # Fallback LLM provider
+SERPER_API_KEY=your_serper_key_here      # Web search capability
+OPENAI_API_KEY=your_openai_key_here      # Voice output (TTS) only
+
+# LLM Settings
+DEFAULT_MODEL=llama-3.3-70b-versatile  # Groq model to use
+TEMPERATURE=0.7                         # 0.0-1.0 (higher = more creative)
+MAX_TOKENS=2048                         # Maximum response length
+
+# Database (choose one)
+DATABASE_PATH=data/assistant.db                    # Local SQLite
+# OR
+DATABASE_PATH=postgresql://user:password@host:5432/dbname  # PostgreSQL
 
 # Voice Features
 ENABLE_VOICE_INPUT=true   # FREE - local Whisper
@@ -350,4 +443,19 @@ ENABLE_VOICE_OUTPUT=false # Requires OpenAI API
 LANGSMITH_PROJECT=multi-agent-assistant
 LANGSMITH_TRACING=true
 ```
+
+### Available Features by Configuration:
+
+| Feature | Required API Keys | Notes |
+|---------|------------------|-------|
+| **Chat Agent** | GROQ_API_KEY, LANGSMITH_API_KEY | Core functionality |
+| **Productivity Agent** | GROQ_API_KEY, LANGSMITH_API_KEY | Task management |
+| **Creative Agent** | GROQ_API_KEY, LANGSMITH_API_KEY | Poems, stories, summaries |
+| **Image Generation** | None (uses free APIs) | Local SDXL or Pollinations.ai |
+| **Memory Agent** | GROQ_API_KEY, LANGSMITH_API_KEY | Context storage |
+| **Researcher Agent** | + SERPER_API_KEY | Web search with citations |
+| **Knowledge Base** | None extra | RAG-based PDF Q&A |
+| **Voice Input (STT)** | None | Free local Whisper |
+| **Voice Output (TTS)** | + OPENAI_API_KEY | OpenAI TTS |
+| **LLM Fallback** | + CEREBRAS_API_KEY | Automatic failover |
 
